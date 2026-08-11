@@ -40,3 +40,14 @@ pnpm build
 The current foundation includes Vue 3, strict TypeScript, Vite, Vue Router,
 PrimeVue 4, Lucide Vue, Pinia, TanStack Vue Query, Zod, VeeValidate, the
 Typesense client, Vitest, MSW, and Playwright.
+
+## GitHub Pages
+
+Pushes to the main branch deploy the production build to
+[s1mplyy.github.io/typesense-dashboard-vue](https://s1mplyy.github.io/typesense-dashboard-vue/).
+The workflow runs the complete quality gate before publishing.
+
+GitHub Pages is served over HTTPS. Typesense nodes used from the hosted dashboard
+must also use HTTPS and allow browser CORS requests from the Pages origin.
+Connection credentials are entered at runtime and are not included in the
+published build.
