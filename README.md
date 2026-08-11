@@ -23,7 +23,7 @@ block foundation and shell development.
 
 ## Local Development
 
-Requirements: Node.js 20.19 or newer and pnpm 11.16.
+Requirements: Node.js 22.13 or newer and pnpm 11.16.
 
 ```sh
 pnpm install
