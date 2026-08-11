@@ -3,6 +3,7 @@ import { createRouter, createWebHashHistory } from 'vue-router';
 import AppShell from '@/app/AppShell.vue';
 import { pinia } from '@/app/pinia';
 import LoginPage from '@/features/auth/LoginPage.vue';
+import ServerStatusPage from '@/features/server-status/ServerStatusPage.vue';
 import NotFoundPage from '@/features/shared/NotFoundPage.vue';
 import PlaceholderPage from '@/features/shared/PlaceholderPage.vue';
 import { useConnectionStore } from '@/stores/connection';
@@ -34,8 +35,7 @@ export const router = createRouter({
         {
           path: '',
           name: 'server-status',
-          component: PlaceholderPage,
-          props: { title: 'Server status' },
+          component: ServerStatusPage,
         },
         ...placeholderRoutes.map(([path, title]) => ({
           path,
