@@ -10,7 +10,6 @@ import { useConnectionStore } from '@/stores/connection';
 
 const placeholderRoutes = [
   ['clusters', 'Cluster'],
-  ['collection/:name/search', 'Search'],
   ['aliases', 'Aliases'],
   ['apikeys', 'API keys'],
   ['analyticsrules', 'Analytics rules'],
@@ -48,6 +47,11 @@ export const router = createRouter({
           path: 'collection/:name/document',
           name: 'collection-documents',
           component: () => import('@/features/documents/DocumentsPage.vue'),
+        },
+        {
+          path: 'collection/:name/search',
+          name: 'collection-search',
+          component: () => import('@/features/documents/DocumentSearchPage.vue'),
         },
         ...placeholderRoutes.map(([path, title]) => ({
           path,
