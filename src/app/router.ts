@@ -10,8 +10,6 @@ import { useConnectionStore } from '@/stores/connection';
 
 const placeholderRoutes = [
   ['clusters', 'Cluster'],
-  ['collections', 'Collections'],
-  ['collection/:name/schema', 'Schema'],
   ['collection/:name/document', 'Documents'],
   ['collection/:name/search', 'Search'],
   ['aliases', 'Aliases'],
@@ -36,6 +34,16 @@ export const router = createRouter({
           path: '',
           name: 'server-status',
           component: ServerStatusPage,
+        },
+        {
+          path: 'collections',
+          name: 'collections',
+          component: () => import('@/features/collections/CollectionsPage.vue'),
+        },
+        {
+          path: 'collection/:name/schema',
+          name: 'collection-schema',
+          component: () => import('@/features/collections/CollectionSchemaPage.vue'),
         },
         ...placeholderRoutes.map(([path, title]) => ({
           path,
