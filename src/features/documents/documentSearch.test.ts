@@ -7,11 +7,14 @@ import {
   buildFilterBy,
   collectHighlightSnippets,
   facetFields,
+  parseRawSearchParameters,
+  parseSearchHistory,
   parseHighlightSegments,
+  prependSearchHistory,
   searchableFieldNames,
   sortOptions,
 } from '@/features/documents/documentSearch';
-import type { SearchField } from '@/features/documents/documentSearch';
+import type { SearchField, SearchHistoryEntry } from '@/features/documents/documentSearch';
 
 const fields: SearchField[] = [
   { name: 'title', type: 'string', index: true, facet: false, sort: false },
@@ -53,6 +56,41 @@ describe('document search helpers', () => {
     expect(() => buildFilterBy({}, { rating: { min: 5, max: 2 } })).toThrowError(
       new DocumentSearchError('rating minimum cannot exceed its maximum.'),
     );
+  });
+
+  it('validates raw search request JSON', () => {
+    expect(parseRawSearchParameters('{"q":"dune","query_by":"title"}')).toEqual({
+      q: 'dune',
+      query_by: 'title',
+    });
+    expect(() => parseRawSearchParameters('[]')).toThrowError(
+      new DocumentSearchError('The raw search request must be a JSON object.'),
+    );
+    expect(() => parseRawSearchParameters('{"query_by":"title"}')).toThrowError(
+      new DocumentSearchError('The raw search request requires a non-empty string q value.'),
+    );
+    expect(() => parseRawSearchParameters('{')).toThrowError(
+      new DocumentSearchError('Enter a valid JSON search request.'),
+    );
+  });
+
+  it('loads valid history entries and prepends unique requests', () => {
+    const previous: SearchHistoryEntry = {
+      id: 'previous',
+      mode: 'builder',
+      createdAt: '2026-08-11T10:00:00.000Z',
+      parameters: { q: '*', page: 1 },
+    };
+    expect(parseSearchHistory(JSON.stringify([previous, { invalid: true }]))).toEqual([previous]);
+    expect(parseSearchHistory('invalid')).toEqual([]);
+
+    const latest: SearchHistoryEntry = {
+      id: 'latest',
+      mode: 'builder',
+      createdAt: '2026-08-11T11:00:00.000Z',
+      parameters: { q: '*', page: 1 },
+    };
+    expect(prependSearchHistory([previous], latest)).toEqual([latest]);
   });
 
   it('parses and collects safe highlighted text segments', () => {

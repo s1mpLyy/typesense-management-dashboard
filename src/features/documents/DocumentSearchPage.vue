@@ -2,11 +2,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import {
   AlertTriangle,
+  Braces,
   ChevronLeft,
   ChevronRight,
+  Clock3,
   Download,
   Edit3,
   FileSearch,
+  List,
+  Play,
   Plus,
   RotateCcw,
   Search,
@@ -18,8 +22,11 @@ import Dialog from 'primevue/dialog';
 import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
 import Select from 'primevue/select';
+import SelectButton from 'primevue/selectbutton';
+import Textarea from 'primevue/textarea';
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import type { SearchParams } from 'typesense/lib/Typesense/Types';
 
 import {
   DocumentSearchError,
@@ -28,10 +35,18 @@ import {
   buildFilterBy,
   collectHighlightSnippets,
   facetFields as deriveFacetFields,
+  parseRawSearchParameters,
+  parseSearchHistory,
+  prependSearchHistory,
   searchableFieldNames,
   sortOptions as deriveSortOptions,
 } from '@/features/documents/documentSearch';
-import type { HighlightSnippet, NumericRange } from '@/features/documents/documentSearch';
+import type {
+  HighlightSnippet,
+  NumericRange,
+  SearchHistoryEntry,
+  SearchMode,
+} from '@/features/documents/documentSearch';
 import {
   deleteDocument,
   exportDocuments,
@@ -59,6 +74,22 @@ const numericMaximums = ref<Record<string, number | null>>({});
 const appliedFilterBy = ref('');
 const selectedSort = ref('');
 const filterError = ref('');
+const rawRequestError = ref('');
+const searchMode = ref<SearchMode>('builder');
+const rawRequestText = ref('');
+const submittedRawParameters = ref<SearchParams<object> | null>(null);
+const rawExecution = ref(0);
+const resultView = ref<'results' | 'response'>('results');
+const historyOpen = ref(false);
+const searchHistory = ref<SearchHistoryEntry[]>([]);
+const searchModeOptions = [
+  { label: 'Builder', value: 'builder' },
+  { label: 'Raw JSON', value: 'raw' },
+];
+const resultViewOptions = [
+  { label: 'Results', value: 'results' },
+  { label: 'Response', value: 'response' },
+];
 const booleanOptions = [
   { label: 'Any value', value: '' },
   { label: 'True', value: 'true' },
@@ -101,38 +132,47 @@ const allFacetFields = computed(() => [
   ...numericFacetFields.value,
 ]);
 const sortOptions = computed(() => deriveSortOptions(collectionFields.value));
+const builderSearchParameters = computed<SearchParams<object>>(() => ({
+  q: submittedQuery.value.trim() || '*',
+  ...(queryFields.value.length ? { query_by: queryFields.value.join(',') } : {}),
+  ...(allFacetFields.value.length
+    ? { facet_by: allFacetFields.value.map((field) => field.name).join(',') }
+    : {}),
+  ...(appliedFilterBy.value ? { filter_by: appliedFilterBy.value } : {}),
+  ...(selectedSort.value ? { sort_by: selectedSort.value } : {}),
+  ...(queryFields.value.length
+    ? {
+        highlight_fields: queryFields.value.join(','),
+        highlight_start_tag: HIGHLIGHT_START,
+        highlight_end_tag: HIGHLIGHT_END,
+      }
+    : {}),
+  page: page.value,
+  per_page: perPage.value,
+}));
+const activeSearchParameters = computed(() =>
+  searchMode.value === 'raw' ? submittedRawParameters.value : builderSearchParameters.value,
+);
 const searchQueryKey = computed(() => [
   'documents',
   connection.sessionId,
   collectionName.value,
-  submittedQuery.value,
-  page.value,
-  perPage.value,
-  appliedFilterBy.value,
-  selectedSort.value,
+  searchMode.value,
+  JSON.stringify(activeSearchParameters.value),
+  rawExecution.value,
 ]);
 const documentsQuery = useQuery({
   queryKey: searchQueryKey,
-  queryFn: () =>
-    searchDocuments(collectionName.value, {
-      q: submittedQuery.value.trim() || '*',
-      ...(queryFields.value.length ? { query_by: queryFields.value.join(',') } : {}),
-      ...(allFacetFields.value.length
-        ? { facet_by: allFacetFields.value.map((field) => field.name).join(',') }
-        : {}),
-      ...(appliedFilterBy.value ? { filter_by: appliedFilterBy.value } : {}),
-      ...(selectedSort.value ? { sort_by: selectedSort.value } : {}),
-      ...(queryFields.value.length
-        ? {
-            highlight_fields: queryFields.value.join(','),
-            highlight_start_tag: HIGHLIGHT_START,
-            highlight_end_tag: HIGHLIGHT_END,
-          }
-        : {}),
-      page: page.value,
-      per_page: perPage.value,
-    }),
-  enabled: computed(() => Boolean(collectionQuery.data.value)),
+  queryFn: async () => {
+    const parameters = activeSearchParameters.value;
+    if (!parameters) throw new DocumentSearchError('Run a raw search request first.');
+    const response = await searchDocuments(collectionName.value, parameters);
+    recordSearchHistory(searchMode.value, parameters);
+    return response;
+  },
+  enabled: computed(
+    () => Boolean(collectionQuery.data.value) && Boolean(activeSearchParameters.value),
+  ),
   retry: false,
 });
 
@@ -178,6 +218,30 @@ watch(collectionName, () => {
   appliedFilterBy.value = '';
   selectedSort.value = '';
   filterError.value = '';
+  rawRequestError.value = '';
+  rawRequestText.value = '';
+  submittedRawParameters.value = null;
+  rawExecution.value = 0;
+  resultView.value = 'results';
+  historyOpen.value = false;
+});
+
+watch(
+  [collectionName, () => connection.endpoint],
+  () => {
+    try {
+      searchHistory.value = parseSearchHistory(sessionStorage.getItem(searchHistoryStorageKey()));
+    } catch {
+      searchHistory.value = [];
+    }
+  },
+  { immediate: true },
+);
+
+watch(searchMode, (mode) => {
+  rawRequestError.value = '';
+  resultView.value = 'results';
+  if (mode === 'raw' && !rawRequestText.value.trim()) resetRawRequest();
 });
 
 watch(perPage, () => {
@@ -191,6 +255,94 @@ watch(selectedSort, () => {
 function submitSearch(): void {
   page.value = 1;
   submittedQuery.value = searchInput.value;
+}
+
+function searchHistoryStorageKey(): string {
+  return `typesense-dashboard-search-history:${encodeURIComponent(connection.endpoint)}:${encodeURIComponent(collectionName.value)}`;
+}
+
+function recordSearchHistory(mode: SearchMode, parameters: SearchParams<object>): void {
+  const entry: SearchHistoryEntry = {
+    id: crypto.randomUUID(),
+    mode,
+    createdAt: new Date().toISOString(),
+    parameters,
+  };
+  searchHistory.value = prependSearchHistory(searchHistory.value, entry);
+  try {
+    sessionStorage.setItem(searchHistoryStorageKey(), JSON.stringify(searchHistory.value));
+  } catch {
+    // Search remains usable when tab storage is unavailable or full.
+  }
+}
+
+function clearSearchHistory(): void {
+  searchHistory.value = [];
+  try {
+    sessionStorage.removeItem(searchHistoryStorageKey());
+  } catch {
+    // In-memory history has still been cleared.
+  }
+}
+
+function runRawSearch(): void {
+  rawRequestError.value = '';
+  try {
+    submittedRawParameters.value = parseRawSearchParameters(rawRequestText.value);
+    rawExecution.value += 1;
+    resultView.value = 'results';
+  } catch (error) {
+    rawRequestError.value =
+      error instanceof DocumentSearchError ? error.message : 'Check the raw search request.';
+  }
+}
+
+function resetRawRequest(): void {
+  rawRequestText.value = JSON.stringify(builderSearchParameters.value, null, 2);
+  submittedRawParameters.value = null;
+  rawRequestError.value = '';
+}
+
+function replaySearch(entry: SearchHistoryEntry): void {
+  searchMode.value = 'raw';
+  rawRequestText.value = JSON.stringify(entry.parameters, null, 2);
+  submittedRawParameters.value = entry.parameters;
+  rawRequestError.value = '';
+  rawExecution.value += 1;
+  resultView.value = 'results';
+  historyOpen.value = false;
+}
+
+function historySummary(entry: SearchHistoryEntry): string {
+  const queryBy = typeof entry.parameters.query_by === 'string' ? entry.parameters.query_by : '';
+  return queryBy ? `${entry.parameters.q} in ${queryBy}` : String(entry.parameters.q);
+}
+
+function historyTimestamp(entry: SearchHistoryEntry): string {
+  const timestamp = new Date(entry.createdAt);
+  return Number.isNaN(timestamp.getTime())
+    ? 'Unknown time'
+    : new Intl.DateTimeFormat(undefined, {
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+      }).format(timestamp);
+}
+
+function formatSearchResponse(): string {
+  return JSON.stringify(documentsQuery.data.value, null, 2);
+}
+
+function downloadSearchResponse(): void {
+  if (!documentsQuery.data.value) return;
+  const url = URL.createObjectURL(new Blob([formatSearchResponse()], { type: 'application/json' }));
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${collectionName.value}.search-response.json`;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 function applyFilters(): void {
@@ -338,22 +490,98 @@ function highlightMatches(highlight: unknown): HighlightSnippet[] {
       </div>
 
       <div
-        v-if="filterError || documentsQuery.error.value || exportMutation.error.value"
+        v-if="
+          filterError || rawRequestError || documentsQuery.error.value || exportMutation.error.value
+        "
         class="inline-alert inline-alert--error"
         role="alert"
       >
         <AlertTriangle :size="18" aria-hidden="true" />
         <div>
-          <strong>{{ filterError ? 'Invalid search filter' : 'Document request failed' }}</strong>
+          <strong>{{
+            filterError || rawRequestError ? 'Invalid search request' : 'Document request failed'
+          }}</strong>
           <span>{{
             filterError ||
+            rawRequestError ||
             documentsQuery.error.value?.message ||
             exportMutation.error.value?.message
           }}</span>
         </div>
       </div>
 
-      <form class="document-search-toolbar" role="search" @submit.prevent="submitSearch">
+      <div class="search-mode-bar">
+        <SelectButton
+          v-model="searchMode"
+          :options="searchModeOptions"
+          option-label="label"
+          option-value="value"
+          :allow-empty="false"
+          aria-label="Search request mode"
+        />
+        <Button
+          :label="'History (' + searchHistory.length + ')'"
+          severity="secondary"
+          outlined
+          :aria-expanded="historyOpen"
+          aria-controls="search-history"
+          @click="historyOpen = !historyOpen"
+        >
+          <template #icon><Clock3 :size="16" /></template>
+        </Button>
+      </div>
+
+      <section
+        v-if="historyOpen"
+        id="search-history"
+        class="search-history-panel"
+        aria-labelledby="search-history-heading"
+      >
+        <header>
+          <div>
+            <Clock3 :size="17" aria-hidden="true" />
+            <h2 id="search-history-heading">Collection search history</h2>
+          </div>
+          <Button
+            v-if="searchHistory.length"
+            label="Clear"
+            text
+            severity="secondary"
+            @click="clearSearchHistory"
+          />
+        </header>
+        <p v-if="!searchHistory.length" class="search-history-empty">
+          Successful searches for this collection appear here for this browser tab.
+        </p>
+        <ol v-else>
+          <li v-for="entry in searchHistory" :key="entry.id">
+            <div>
+              <strong>{{ historySummary(entry) }}</strong>
+              <span>
+                {{ entry.mode === 'raw' ? 'Raw JSON' : 'Builder' }} at
+                {{ historyTimestamp(entry) }}
+              </span>
+            </div>
+            <Button
+              v-tooltip.left="'Run this request again'"
+              text
+              rounded
+              severity="secondary"
+              :aria-label="'Run history request ' + historySummary(entry)"
+              @click="replaySearch(entry)"
+            >
+              <RotateCcw :size="16" />
+            </Button>
+          </li>
+        </ol>
+      </section>
+
+      <form
+        v-if="searchMode === 'builder'"
+        class="document-search-toolbar"
+        role="search"
+        @submit.prevent="submitSearch"
+      >
         <div class="search-input document-search-input">
           <Search :size="17" aria-hidden="true" />
           <InputText
@@ -375,7 +603,7 @@ function highlightMatches(highlight: unknown): HighlightSnippet[] {
       </form>
 
       <section
-        v-if="allFacetFields.length || sortOptions.length > 1"
+        v-if="searchMode === 'builder' && (allFacetFields.length || sortOptions.length > 1)"
         class="advanced-search-panel"
         aria-labelledby="advanced-search-heading"
       >
@@ -467,9 +695,76 @@ function highlightMatches(highlight: unknown): HighlightSnippet[] {
         </div>
       </section>
 
+      <section v-if="searchMode === 'raw'" class="raw-search-panel">
+        <header>
+          <div>
+            <Braces :size="17" aria-hidden="true" />
+            <div>
+              <h2>Request JSON</h2>
+              <p>Parameters are sent to this collection's search endpoint.</p>
+            </div>
+          </div>
+          <div>
+            <Button
+              v-tooltip.left="'Reset to the current builder request'"
+              text
+              rounded
+              severity="secondary"
+              aria-label="Reset raw search request"
+              @click="resetRawRequest"
+            >
+              <RotateCcw :size="16" />
+            </Button>
+            <Button label="Run search" severity="secondary" @click="runRawSearch">
+              <template #icon><Play :size="16" /></template>
+            </Button>
+          </div>
+        </header>
+        <Textarea
+          v-model="rawRequestText"
+          class="raw-search-editor"
+          rows="14"
+          spellcheck="false"
+          aria-label="Raw search request"
+          @keydown.meta.enter.prevent="runRawSearch"
+          @keydown.ctrl.enter.prevent="runRawSearch"
+        />
+      </section>
+
+      <div v-if="documentsQuery.data.value" class="search-result-bar">
+        <SelectButton
+          v-model="resultView"
+          :options="resultViewOptions"
+          option-label="label"
+          option-value="value"
+          :allow-empty="false"
+          aria-label="Search result view"
+        >
+          <template #option="slotProps">
+            <List v-if="slotProps.option.value === 'results'" :size="15" />
+            <Braces v-else :size="15" />
+            <span>{{ slotProps.option.label }}</span>
+          </template>
+        </SelectButton>
+        <Button
+          label="Download response"
+          severity="secondary"
+          outlined
+          @click="downloadSearchResponse"
+        >
+          <template #icon><Download :size="16" /></template>
+        </Button>
+      </div>
+
       <div v-if="documentsQuery.isPending.value" class="status-loading" aria-live="polite">
         Searching documents...
       </div>
+
+      <pre
+        v-else-if="documentsQuery.data.value && resultView === 'response'"
+        class="raw-search-response"
+        aria-label="Raw search response"
+        >{{ formatSearchResponse() }}</pre>
 
       <div v-else-if="hits.length" class="document-result-grid">
         <article v-for="hit in hits" :key="documentId(hit.document)" class="document-card">
@@ -527,7 +822,11 @@ function highlightMatches(highlight: unknown): HighlightSnippet[] {
         </p>
       </div>
 
-      <nav v-if="found > perPage" class="document-pagination" aria-label="Document pages">
+      <nav
+        v-if="searchMode === 'builder' && resultView === 'results' && found > perPage"
+        class="document-pagination"
+        aria-label="Document pages"
+      >
         <Button
           v-tooltip.top="'Previous page'"
           text

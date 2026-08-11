@@ -30,6 +30,8 @@ behavior and evidence remain tracked separately in
       deletion
 - [x] Schema-derived string/boolean facets, numeric ranges, sortable fields, and
       safely rendered highlighted snippets
+- [x] Raw JSON search, complete response inspection/export, and tab-scoped
+      per-collection search history
 - [x] Unit/component coverage for current services and pages
 - [x] Production build and document workflow verification on desktop and mobile
 
@@ -53,7 +55,6 @@ behavior and evidence remain tracked separately in
 
 - [ ] Facet-value search, stopword selection, max candidates, and advanced request
       controls
-- [ ] Raw JSON search, response view/export, and per-collection history
 - [ ] Invalid-parameter, timeout, and server-error recovery states
 
 ### Configuration

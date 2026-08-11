@@ -1,4 +1,5 @@
 import type { CollectionFieldSchema } from 'typesense/lib/Typesense/Collection';
+import type { SearchParams } from 'typesense/lib/Typesense/Types';
 
 export const HIGHLIGHT_START = '[[[typesense-highlight]]]';
 export const HIGHLIGHT_END = '[[[/typesense-highlight]]]';
@@ -25,11 +26,80 @@ export interface HighlightSnippet {
   segments: HighlightSegment[];
 }
 
+export type SearchMode = 'builder' | 'raw';
+
+export interface SearchHistoryEntry {
+  id: string;
+  mode: SearchMode;
+  createdAt: string;
+  parameters: SearchParams<object>;
+}
+
+export const SEARCH_HISTORY_LIMIT = 12;
+
 export class DocumentSearchError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'DocumentSearchError';
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+export function parseRawSearchParameters(input: string): SearchParams<object> {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(input);
+  } catch {
+    throw new DocumentSearchError('Enter a valid JSON search request.');
+  }
+
+  if (!isRecord(parsed)) {
+    throw new DocumentSearchError('The raw search request must be a JSON object.');
+  }
+  if (typeof parsed.q !== 'string' || !parsed.q.trim()) {
+    throw new DocumentSearchError('The raw search request requires a non-empty string q value.');
+  }
+
+  return parsed;
+}
+
+function isSearchHistoryEntry(value: unknown): value is SearchHistoryEntry {
+  if (!isRecord(value) || !isRecord(value.parameters)) return false;
+  return (
+    typeof value.id === 'string' &&
+    (value.mode === 'builder' || value.mode === 'raw') &&
+    typeof value.createdAt === 'string' &&
+    typeof value.parameters.q === 'string' &&
+    Boolean(value.parameters.q.trim())
+  );
+}
+
+export function parseSearchHistory(serialized: string | null): SearchHistoryEntry[] {
+  if (!serialized) return [];
+  try {
+    const parsed: unknown = JSON.parse(serialized);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(isSearchHistoryEntry).slice(0, SEARCH_HISTORY_LIMIT);
+  } catch {
+    return [];
+  }
+}
+
+export function prependSearchHistory(
+  entries: SearchHistoryEntry[],
+  entry: SearchHistoryEntry,
+): SearchHistoryEntry[] {
+  const signature = JSON.stringify(entry.parameters);
+  return [
+    entry,
+    ...entries.filter(
+      (candidate) =>
+        candidate.mode !== entry.mode || JSON.stringify(candidate.parameters) !== signature,
+    ),
+  ].slice(0, SEARCH_HISTORY_LIMIT);
 }
 
 export function searchableFieldNames(fields: SearchField[]): string[] {

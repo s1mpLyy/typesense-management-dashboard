@@ -32,6 +32,7 @@ const profile: ConnectionProfile = {
   apiKey: 'test-key',
   connectionTimeoutSeconds: 10,
 };
+const createObjectUrl = vi.fn(() => 'blob:search-response');
 
 const collection: CollectionSchema = {
   name: 'products',
@@ -145,6 +146,15 @@ async function mountPage() {
 describe('DocumentSearchPage', () => {
   beforeEach(() => {
     sessionStorage.clear();
+    createObjectUrl.mockClear();
+    Object.defineProperty(URL, 'createObjectURL', {
+      configurable: true,
+      value: createObjectUrl,
+    });
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      configurable: true,
+      value: vi.fn(),
+    });
     vi.mocked(getCollection).mockResolvedValue(collection);
     vi.mocked(searchDocuments).mockResolvedValue(searchResponse);
     vi.mocked(deleteDocument).mockResolvedValue({ id: 'one', title: 'First product' });
@@ -222,6 +232,65 @@ describe('DocumentSearchPage', () => {
       expect.objectContaining({ filter_by: 'rating:[4..5]' }),
     );
 
+    wrapper.unmount();
+    queryClient.clear();
+  });
+
+  it('runs a validated raw JSON request and stores collection history', async () => {
+    const { wrapper, queryClient } = await mountPage();
+
+    const rawMode = wrapper.findAll('button').find((button) => button.text().trim() === 'Raw JSON');
+    await rawMode?.trigger('click');
+    await flushPromises();
+
+    const editor = wrapper.get('textarea[aria-label="Raw search request"]');
+    await editor.setValue(JSON.stringify({ q: 'Second', query_by: 'title', per_page: 5 }, null, 2));
+    const run = wrapper.findAll('button').find((button) => button.text().trim() === 'Run search');
+    await run?.trigger('click');
+    await flushPromises();
+
+    expect(searchDocuments).toHaveBeenLastCalledWith('products', {
+      q: 'Second',
+      query_by: 'title',
+      per_page: 5,
+    });
+    expect(wrapper.text()).toContain('History (2)');
+
+    const history = wrapper
+      .findAll('button')
+      .find((button) => button.text().trim() === 'History (2)');
+    await history?.trigger('click');
+    expect(wrapper.text()).toContain('Second in title');
+    expect(wrapper.text()).toContain('Raw JSON at');
+
+    wrapper.unmount();
+    queryClient.clear();
+  });
+
+  it('inspects and downloads the complete search response', async () => {
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => undefined);
+    const { wrapper, queryClient } = await mountPage();
+
+    const responseView = wrapper
+      .findAll('button')
+      .find((button) => button.text().trim() === 'Response');
+    await responseView?.trigger('click');
+    await flushPromises();
+
+    const response = wrapper.get('pre[aria-label="Raw search response"]');
+    expect(response.text()).toContain('"found": 2');
+    expect(response.text()).toContain('"First product"');
+
+    const download = wrapper
+      .findAll('button')
+      .find((button) => button.text().trim() === 'Download response');
+    await download?.trigger('click');
+    expect(createObjectUrl).toHaveBeenCalledWith(expect.any(Blob));
+    expect(click).toHaveBeenCalledOnce();
+
+    click.mockRestore();
     wrapper.unmount();
     queryClient.clear();
   });

@@ -968,6 +968,184 @@ input:focus-visible {
   white-space: nowrap;
 }
 
+.search-mode-bar,
+.search-result-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.search-mode-bar .p-selectbutton .p-togglebutton,
+.search-result-bar .p-selectbutton .p-togglebutton {
+  min-width: 104px;
+}
+
+.search-result-bar {
+  margin-top: 16px;
+}
+
+.search-result-bar .p-togglebutton-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.search-history-panel {
+  margin-bottom: 16px;
+  border-block: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.search-history-panel > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 6px 8px 6px 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.search-history-panel > header > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.search-history-panel > header svg {
+  color: var(--color-text-muted);
+}
+
+.search-history-panel h2 {
+  margin: 0;
+  font-size: 13px;
+}
+
+.search-history-panel ol {
+  max-height: 248px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.search-history-panel li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 54px;
+  padding: 7px 8px 7px 12px;
+}
+
+.search-history-panel li + li {
+  border-top: 1px solid var(--color-border);
+}
+
+.search-history-panel li > div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.search-history-panel li strong,
+.search-history-panel li span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-history-panel li strong {
+  font-size: 12px;
+}
+
+.search-history-panel li span,
+.search-history-empty {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.search-history-empty {
+  margin: 0;
+  padding: 14px 12px;
+}
+
+.raw-search-panel {
+  margin-bottom: 16px;
+  overflow: hidden;
+  border-block: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.raw-search-panel > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.raw-search-panel > header > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.raw-search-panel > header > div:first-child > svg {
+  flex: 0 0 auto;
+  color: var(--color-text-muted);
+}
+
+.raw-search-panel h2,
+.raw-search-panel p {
+  margin: 0;
+}
+
+.raw-search-panel h2 {
+  font-size: 13px;
+}
+
+.raw-search-panel p {
+  margin-top: 2px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.raw-search-editor {
+  display: block;
+  width: 100%;
+  min-height: 280px;
+  resize: vertical;
+  border: 0;
+  border-radius: 0;
+  background: var(--color-surface-subtle);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.raw-search-editor:enabled:focus {
+  box-shadow: inset var(--focus-ring);
+}
+
+.raw-search-response {
+  max-height: 680px;
+  margin: 0;
+  padding: 16px;
+  overflow: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-subtle);
+  color: var(--color-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.55;
+  white-space: pre;
+}
+
 .advanced-search-panel {
   margin-bottom: 16px;
   border-block: 1px solid var(--color-border);
@@ -1633,6 +1811,38 @@ input:focus-visible {
 
   .document-search-toolbar > span {
     text-align: left;
+  }
+
+  .search-mode-bar,
+  .search-result-bar,
+  .raw-search-panel > header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .search-mode-bar > .p-button,
+  .search-result-bar > .p-button {
+    align-self: flex-start;
+  }
+
+  .search-mode-bar .p-selectbutton,
+  .search-result-bar .p-selectbutton {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .search-mode-bar .p-selectbutton .p-togglebutton,
+  .search-result-bar .p-selectbutton .p-togglebutton {
+    min-width: 0;
+  }
+
+  .raw-search-panel > header > div:last-child {
+    justify-content: flex-end;
+  }
+
+  .raw-search-editor {
+    min-height: 240px;
   }
 
   .document-result-grid {
