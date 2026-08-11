@@ -1,0 +1,32 @@
+:root {
+  color-scheme: light;
+  --color-canvas: #f6f7f9;
+  --color-surface: #ffffff;
+  --color-surface-subtle: #f0f2f5;
+  --color-sidebar: #17191d;
+  --color-sidebar-hover: #24272d;
+  --color-text: #1d232a;
+  --color-text-muted: #66717e;
+  --color-border: #dfe3e8;
+  --color-accent: #e34b31;
+  --color-accent-strong: #c63c25;
+  --color-success: #18864b;
+  --focus-ring: 0 0 0 3px rgb(227 75 49 / 20%);
+  --sidebar-width: 248px;
+  --sidebar-collapsed-width: 72px;
+  --topbar-height: 68px;
+  --radius-sm: 5px;
+  --radius-md: 8px;
+}
+
+:root.app-dark {
+  color-scheme: dark;
+  --color-canvas: #111315;
+  --color-surface: #191c20;
+  --color-surface-subtle: #22262b;
+  --color-sidebar: #0c0e10;
+  --color-sidebar-hover: #20242a;
+  --color-text: #f0f2f4;
+  --color-text-muted: #a3abb5;
+  --color-border: #30353c;
+}

@@ -1,0 +1,58 @@
+{
+  "name": "typesense-dashboard-vue",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.16.0",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --build && vite build",
+    "build-only": "vite build",
+    "type-check": "vue-tsc --build",
+    "lint": "eslint . --max-warnings=0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "check": "vue-tsc --build && eslint . --max-warnings=0 && vitest run && prettier --check ."
+  },
+  "dependencies": {
+    "@lucide/vue": "1.31.0",
+    "@primeuix/themes": "2.0.3",
+    "@tanstack/vue-query": "latest",
+    "monaco-editor": "latest",
+    "pinia": "latest",
+    "primevue": "4.5.5",
+    "typesense": "latest",
+    "vee-validate": "latest",
+    "vue": "latest",
+    "vue-router": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@eslint/js": "latest",
+    "@playwright/test": "latest",
+    "@tsconfig/node20": "latest",
+    "@types/node": "latest",
+    "@vitejs/plugin-vue": "latest",
+    "@vitest/eslint-plugin": "latest",
+    "@vue/eslint-config-prettier": "latest",
+    "@vue/eslint-config-typescript": "latest",
+    "@vue/tsconfig": "latest",
+    "@vue/test-utils": "latest",
+    "eslint": "latest",
+    "eslint-plugin-vue": "latest",
+    "globals": "latest",
+    "happy-dom": "latest",
+    "msw": "latest",
+    "prettier": "latest",
+    "typescript": "5.9.2",
+    "vite": "latest",
+    "vitest": "latest",
+    "vue-tsc": "latest"
+  }
+}

@@ -1,0 +1,5 @@
+allowBuilds:
+  msw: false
+  vue-demi: true
+minimumReleaseAgeExclude:
+  - '@lucide/vue@1.31.0'
