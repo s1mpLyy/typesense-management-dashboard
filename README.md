@@ -1,53 +1,140 @@
-# Typesense Dashboard Vue Reimplementation
+# Typesense Dashboard
 
-This directory is the isolated workspace for the new dashboard. The existing
-application in the repository root remains the reference implementation for
-behavior, API calls, and feature parity.
+A modern, open-source Typesense admin dashboard for managing collections, schemas, documents, search, and server health from your browser.
 
-See [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md) for the delivery steps and
-completion criteria. Phase-one behavior discovery is tracked in the
-[feature-parity checklist](./docs/parity-checklist.md), while
-[IMPLEMENTATION_CHECKLIST.md](./IMPLEMENTATION_CHECKLIST.md) tracks completed and
-remaining Vue features. See [STACK.md](./STACK.md) for the selected technologies,
-architecture boundaries, and security decisions.
+[![Deploy to GitHub Pages](https://github.com/s1mpLyy/typesense-dashboard-vue/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/s1mpLyy/typesense-dashboard-vue/actions/workflows/deploy-pages.yml)
+[![Vue 3](https://img.shields.io/badge/Vue-3-42b883?logo=vuedotjs&logoColor=white)](https://vuejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
-## Current Status
+[Live dashboard](https://s1mplyy.github.io/typesense-dashboard-vue/) · [Features](#features) · [Screenshots](#screenshots) · [Local development](#local-development)
 
-The Vue 3 scaffold, responsive shell, connection flow, server status, collection
-administration, schema editing, document batch import, and document search are
-implemented. Unmigrated routes remain visible as placeholders.
+![Typesense document search dashboard](./docs/images/document-search.jpg)
 
-The parity checklist remains the source of truth for feature behavior. Its
-outstanding evidence and bug dispositions block migration approval, but do not
-block foundation and shell development.
+## About
 
-## Local Development
+Typesense Dashboard is a community-built web interface for operating a Typesense server. Connect a self-hosted or cloud Typesense node, inspect its health, manage collection schemas, import documents, and test searches without working directly with the REST API.
 
-Requirements: Node.js 22.13 or newer and pnpm 11.16.
+The application is a static Vue single-page app. It connects directly from your browser to the Typesense endpoint you provide—there is no application backend between the dashboard and your server.
+
+> [!NOTE]
+> This project is under active development. Collection, schema, document, search, and server-status workflows are implemented. Configuration areas that are still being migrated remain visible as placeholders; see the [implementation checklist](./IMPLEMENTATION_CHECKLIST.md) for current progress.
+
+## Features
+
+- Connect to self-hosted and cloud Typesense nodes over HTTP or HTTPS
+- Monitor server health, version, storage usage, request activity, and collection totals
+- List, filter, create, inspect, update, and delete collections
+- Edit collection schemas and manage fields incrementally
+- Add, upsert, and update documents with JSON or JSONL imports
+- Browse, search, edit, delete, and export indexed documents
+- Build search requests with facets, numeric filters, sorting, pagination, and highlights
+- Run raw JSON searches and inspect or download complete Typesense responses
+- Switch between light and dark themes in a responsive dashboard interface
+- Keep connection credentials scoped to the current browser tab
+
+## Screenshots
+
+### Server health and metrics
+
+![Typesense server health and metrics overview](./docs/images/server-status.jpg)
+
+### Collection management
+
+![Typesense collection management screen](./docs/images/collections.jpg)
+
+### Document search
+
+![Typesense document search with filters and results](./docs/images/document-search.jpg)
+
+## Local development
+
+### Requirements
+
+- Node.js 22.13 or newer
+- pnpm 11.16
+- A reachable Typesense server and an API key with the permissions needed for the operations you want to perform
+
+### Run the dashboard
 
 ```sh
+git clone https://github.com/s1mpLyy/typesense-dashboard-vue.git
+cd typesense-dashboard-vue
 pnpm install
 pnpm dev
 ```
 
-Run the complete local quality gate with:
+Open the local URL printed by Vite, enter your Typesense host, port, protocol, and API key, then select **Connect**.
+
+### Quality checks
 
 ```sh
 pnpm check
 pnpm build
 ```
 
-The current foundation includes Vue 3, strict TypeScript, Vite, Vue Router,
-PrimeVue 4, Lucide Vue, Pinia, TanStack Vue Query, Zod, VeeValidate, the
-Typesense client, Vitest, MSW, and Playwright.
+Useful commands:
 
-## GitHub Pages
+| Command             | Description                                           |
+| ------------------- | ----------------------------------------------------- |
+| `pnpm dev`          | Start the Vite development server                     |
+| `pnpm test`         | Run the Vitest test suite                             |
+| `pnpm test:e2e`     | Run Playwright end-to-end tests                       |
+| `pnpm type-check`   | Check Vue and TypeScript types                        |
+| `pnpm lint`         | Run ESLint                                            |
+| `pnpm format:check` | Check Prettier formatting                             |
+| `pnpm check`        | Run types, linting, unit tests, and formatting checks |
+| `pnpm build`        | Create a production build in `dist/`                  |
 
-Pushes to the main branch deploy the production build to
-[s1mplyy.github.io/typesense-dashboard-vue](https://s1mplyy.github.io/typesense-dashboard-vue/).
-The workflow runs the complete quality gate before publishing.
+## Connecting to Typesense
 
-GitHub Pages is served over HTTPS. Typesense nodes used from the hosted dashboard
-must also use HTTPS and allow browser CORS requests from the Pages origin.
-Connection credentials are entered at runtime and are not included in the
-published build.
+The hosted dashboard runs over HTTPS, so the Typesense node must also use HTTPS. Your node must allow browser CORS requests from the dashboard origin:
+
+```text
+https://s1mplyy.github.io
+```
+
+Use a narrowly scoped API key whenever possible. Administrative actions such as creating collections, changing schemas, or deleting documents require the corresponding Typesense permissions.
+
+Credentials are entered at runtime, stored only in session storage for refresh recovery, and cleared when you disconnect or close the browser tab. They are not bundled into the application or sent to a separate dashboard backend.
+
+## Tech stack
+
+- Vue 3, Vue Router, and strict TypeScript
+- Vite
+- PrimeVue and Lucide Vue
+- Pinia and TanStack Vue Query
+- Typesense JavaScript client
+- Zod and VeeValidate
+- Monaco Editor
+- Vitest, Vue Test Utils, MSW, and Playwright
+
+See [STACK.md](./STACK.md) for architecture, state ownership, and security decisions.
+
+## Deployment
+
+Pushes to `main` run the complete quality gate and deploy the production build to [GitHub Pages](https://s1mplyy.github.io/typesense-dashboard-vue/). To host the dashboard elsewhere, build the static application with `pnpm build` and publish the contents of `dist/`.
+
+If the site is hosted below a subpath, set `VITE_BASE_PATH` during the build:
+
+```sh
+VITE_BASE_PATH=/your-subpath/ pnpm build
+```
+
+## Project status and roadmap
+
+The dashboard currently covers its core collection and document workflows. Planned work includes cluster operations, aliases, API key management, analytics rules, search presets, stopwords, stemming dictionaries, synonyms, curations, additional end-to-end coverage, and release hardening.
+
+- [Implementation checklist](./IMPLEMENTATION_CHECKLIST.md)
+- [Implementation plan](./IMPLEMENTATION_PLAN.md)
+- [Feature-parity checklist](./docs/parity-checklist.md)
+
+## Contributing
+
+Issues and pull requests are welcome. Before opening a pull request:
+
+1. Create a focused branch.
+2. Add or update tests for behavior changes.
+3. Run `pnpm check` and `pnpm build`.
+4. Describe the Typesense version and permissions used for manual verification.
+
+This is a community project and is not presented as an official Typesense product.
