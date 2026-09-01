@@ -2,11 +2,11 @@
 
 A modern, open-source Typesense admin dashboard for managing collections, schemas, documents, search, and server health from your browser.
 
-[![Deploy to GitHub Pages](https://github.com/s1mpLyy/typesense-dashboard-vue/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/s1mpLyy/typesense-dashboard-vue/actions/workflows/deploy-pages.yml)
+[![Deploy to GitHub Pages](https://github.com/s1mpLyy/typesense-management-dashboard/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/s1mpLyy/typesense-management-dashboard/actions/workflows/deploy-pages.yml)
 [![Vue 3](https://img.shields.io/badge/Vue-3-42b883?logo=vuedotjs&logoColor=white)](https://vuejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
-[Live dashboard](https://s1mplyy.github.io/typesense-dashboard-vue/) · [Features](#features) · [Screenshots](#screenshots) · [Local development](#local-development)
+[Live dashboard](https://s1mplyy.github.io/typesense-management-dashboard/) · [Features](#features) · [Screenshots](#screenshots) · [Local development](#local-development)
 
 ![Typesense document search dashboard](./docs/images/document-search.jpg)
 
@@ -57,8 +57,8 @@ The application is a static Vue single-page app. It connects directly from your 
 ### Run the dashboard
 
 ```sh
-git clone https://github.com/s1mpLyy/typesense-dashboard-vue.git
-cd typesense-dashboard-vue
+git clone https://github.com/s1mpLyy/typesense-management-dashboard.git
+cd typesense-management-dashboard
 pnpm install
 pnpm dev
 ```
@@ -112,7 +112,7 @@ See [STACK.md](./STACK.md) for architecture, state ownership, and security decis
 
 ## Deployment
 
-Pushes to `main` run the complete quality gate and deploy the production build to [GitHub Pages](https://s1mplyy.github.io/typesense-dashboard-vue/). To host the dashboard elsewhere, build the static application with `pnpm build` and publish the contents of `dist/`.
+Pushes to `main` run the complete quality gate and deploy the production build to [GitHub Pages](https://s1mplyy.github.io/typesense-management-dashboard/). To host the dashboard elsewhere, build the static application with `pnpm build` and publish the contents of `dist/`.
 
 If the site is hosted below a subpath, set `VITE_BASE_PATH` during the build:
 
