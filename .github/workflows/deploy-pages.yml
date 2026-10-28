@@ -40,7 +40,7 @@ jobs:
       - name: Build GitHub Pages artifact
         run: pnpm build
         env:
-          VITE_BASE_PATH: /typesense-dashboard-vue/
+          VITE_BASE_PATH: /${{ github.event.repository.name }}/
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
